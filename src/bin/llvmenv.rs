@@ -117,12 +117,18 @@ fn main() -> error::Result<()> {
         }
 
         LLVMEnv::Entries {} => {
-            if let Ok(entries) = entry::load_entries() {
-                for entry in &entries {
-                    println!("{}", entry.name());
+            match entry::load_entries() {
+                Ok(ref entries) if entries.len() > 0 => {
+                    for entry in entries {
+                        println!("{}", entry.name());
+                    }
                 }
-            } else {
-                bail!("No entries. Please define entries in $XDG_CONFIG_HOME/llvmenv/entry.toml");
+                Ok(_) => {
+                    bail!("No entries. Please define entries in $XDG_CONFIG_HOME/llvmenv/entry.toml");
+                }
+                Err(reason) => {
+                    bail!(reason.to_string())
+                }
             }
         }
         LLVMEnv::BuildEntry {
