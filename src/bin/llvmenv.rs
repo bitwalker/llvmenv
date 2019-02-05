@@ -29,6 +29,8 @@ enum LLVMEnv {
         update: bool,
         #[structopt(short = "c", long = "clean", help = "clean build directory")]
         clean: bool,
+        #[structopt(long = "ccache", help = "use ccache to cache builds")]
+        ccache: bool,
         #[structopt(
             short = "G",
             long = "builder",
@@ -135,6 +137,7 @@ fn main() -> error::Result<()> {
             name,
             update,
             clean,
+            ccache,
             discard,
             builder,
             nproc,
@@ -154,7 +157,7 @@ fn main() -> error::Result<()> {
             if clean {
                 entry.clean_build_dir().unwrap();
             }
-            entry.build(nproc).unwrap();
+            entry.build(nproc, ccache).unwrap();
         }
 
         LLVMEnv::Current { verbose } => {

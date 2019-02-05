@@ -414,8 +414,8 @@ impl Entry {
         Ok(data_dir()?.join(self.name()))
     }
 
-    pub fn build(&self, nproc: usize) -> Result<()> {
-        self.configure()?;
+    pub fn build(&self, nproc: usize, use_ccache: bool) -> Result<()> {
+        self.configure(use_ccache)?;
         process::Command::new("cmake")
             .args(&[
                 "--build",
@@ -428,7 +428,7 @@ impl Entry {
         Ok(())
     }
 
-    fn configure(&self) -> Result<()> {
+    fn configure(&self, use_ccache: bool) -> Result<()> {
         let setting = self.setting();
         let mut opts = setting.builder.option();
         opts.push(format!("{}", self.src_dir()?.display()));
@@ -443,8 +443,15 @@ impl Entry {
                 setting.target.iter().join(";")
             ));
         }
+        if use_ccache {
+            // Override user settings if given on command line
+            opts.push("-DLLVM_CCACHE_BUILD=ON".to_owned());
+        }
         for (k, v) in &setting.option {
-            opts.push(format!("-D{}={}", k, v));
+            match k.as_ref() {
+                "LLVM_CCACHE_BUILD" if use_ccache => continue,
+                _ => opts.push(format!("-D{}={}", k, v))
+            }
         }
         process::Command::new("cmake")
             .args(&opts)
