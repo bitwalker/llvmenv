@@ -179,6 +179,8 @@ impl Tool {
 pub struct EntrySetting {
     /// URL of remote LLVM resource, see also [resouce](../resource/index.html) module
     pub url: Option<String>,
+    /// Branch of remote LLVM resource, if a source repository
+    pub branch: Option<String>,
     /// Path of local LLVM source dir
     pub path: Option<String>,
     /// Additional LLVM Tools, e.g. clang, openmp, lld, and so on.
@@ -336,15 +338,15 @@ impl Entry {
 
     pub fn checkout(&self) -> Result<()> {
         match self {
-            Entry::Remote { url, tools, .. } => {
+            Entry::Remote { url, tools, setting, .. } => {
                 if !self.src_dir()?.is_dir() {
-                    let src = Resource::from_url(url)?;
+                    let src = Resource::from_url(url, setting.branch.clone())?;
                     src.download(&self.src_dir()?)?;
                 }
                 for tool in tools {
                     let path = self.src_dir()?.join(tool.rel_path());
                     if !path.is_dir() {
-                        let src = Resource::from_url(&tool.url)?;
+                        let src = Resource::from_url(&tool.url, tool.branch.clone())?;
                         src.download(&path)?;
                     }
                 }
@@ -366,11 +368,11 @@ impl Entry {
 
     pub fn update(&self) -> Result<()> {
         match self {
-            Entry::Remote { url, tools, .. } => {
-                let src = Resource::from_url(url)?;
+            Entry::Remote { url, tools, setting, .. } => {
+                let src = Resource::from_url(url, setting.branch.clone())?;
                 src.update(&self.src_dir()?)?;
                 for tool in tools {
-                    let src = Resource::from_url(&tool.url)?;
+                    let src = Resource::from_url(&tool.url, tool.branch.clone())?;
                     src.update(&self.src_dir()?.join(tool.rel_path()))?;
                 }
             }
@@ -460,6 +462,7 @@ mod tests {
     fn test_parse_setting() -> Result<()> {
         let setting = EntrySetting {
             url: None,
+            branch: None,
             path: None,
             tools: Default::default(),
             option: Default::default(),
@@ -471,6 +474,7 @@ mod tests {
 
         let setting = EntrySetting {
             url: Some("http://llvm.org/svn/llvm-project/llvm/trunk".into()),
+            branch: None,
             path: Some("~/.config/llvmenv".into()),
             tools: Default::default(),
             option: Default::default(),

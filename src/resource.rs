@@ -30,20 +30,26 @@ impl Resource {
     /// # use llvmenv::resource::Resource;
     /// // Official SVN repository
     /// let llvm_official_url = "http://llvm.org/svn/llvm-project/llvm/trunk";
-    /// let svn = Resource::from_url(llvm_official_url).unwrap();
+    /// let svn = Resource::from_url(llvm_official_url, None).unwrap();
     /// assert_eq!(svn, Resource::Svn { url: llvm_official_url.into() });
     ///
     /// // GitHub mirror
     /// let github_mirror = "https://github.com/llvm-mirror/llvm";
-    /// let git = Resource::from_url(github_mirror).unwrap();
+    /// let git = Resource::from_url(github_mirror, None).unwrap();
     /// assert_eq!(git, Resource::Git { url: github_mirror.into(), branch: None });
+    ///
+    /// // GitHub mirror w/branch
+    /// let github_mirror = "https://github.com/llvm-mirror/llvm";
+    /// let branch = Some("release_70".to_owned());
+    /// let git = Resource::from_url(github_mirror, branch.clone()).unwrap();
+    /// assert_eq!(git, Resource::Git { url: github_mirror.into(), branch  });
     ///
     /// // Tar release
     /// let tar_url = "http://releases.llvm.org/6.0.1/llvm-6.0.1.src.tar.xz";
-    /// let tar = Resource::from_url(tar_url).unwrap();
+    /// let tar = Resource::from_url(tar_url, None).unwrap();
     /// assert_eq!(tar, Resource::Tar { url: tar_url.into() });
     /// ```
-    pub fn from_url(url_str: &str) -> Result<Self> {
+    pub fn from_url(url_str: &str, branch: Option<String>) -> Result<Self> {
         // Check file extension
         if let Ok(filename) = get_filename_from_url(url_str) {
             for ext in &[".tar.gz", ".tar.xz", ".tar.bz2", ".tar.Z", ".tgz", ".taz"] {
@@ -66,7 +72,7 @@ impl Resource {
                 info!("Find '.git' extension");
                 return Ok(Resource::Git {
                     url: url_str.into(),
-                    branch: None,
+                    branch,
                 });
             }
         }
@@ -78,7 +84,7 @@ impl Resource {
                 info!("URL is a cloud git service: {}", service);
                 return Ok(Resource::Git {
                     url: url_str.into(),
-                    branch: None,
+                    branch,
                 });
             }
         }
@@ -94,7 +100,7 @@ impl Resource {
                 info!("URL is LLVM Git repository");
                 return Ok(Resource::Git {
                     url: url_str.into(),
-                    branch: None,
+                    branch,
                 });
             }
         }
@@ -132,7 +138,7 @@ impl Resource {
                 info!("Git access succeeds");
                 Ok(Resource::Git {
                     url: url_str.into(),
-                    branch: None,
+                    branch,
                 })
             }
             Err(_) => {
