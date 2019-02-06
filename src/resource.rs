@@ -168,10 +168,14 @@ impl Resource {
             Resource::Git { url, branch } => {
                 info!("Git clone {}", url);
                 let mut git = Command::new("git");
-                git.args(&["clone", url.as_str(), "--depth", "1"]).arg(dest);
+                git.arg("clone")
+                   .arg(url.as_str())
+                   .args(&["--depth", "1"])
+                   .arg("--no-single-branch");
                 if let Some(branch) = branch {
                     git.args(&["-b", branch]);
                 }
+                git.arg(dest);
                 git.check_run()?;
             }
             Resource::Tar { url } => {
@@ -213,10 +217,24 @@ impl Resource {
                 .arg("update")
                 .current_dir(dest)
                 .check_run()?,
-            Resource::Git { .. } => Command::new("git")
-                .arg("pull")
-                .current_dir(dest)
-                .check_run()?,
+            Resource::Git { branch: Some(branch), .. } => {
+                // Checkout branch
+                Command::new("git")
+                    .arg("checkout")
+                    .args(&["-B", branch])
+                    .current_dir(dest)
+                    .check_run()?;
+                // Merge any fetched commits
+                Command::new("git")
+                    .arg("pull")
+                    .current_dir(dest)
+                    .check_run()?
+            }
+            Resource::Git { .. } =>
+                Command::new("git")
+                    .arg("pull")
+                    .current_dir(dest)
+                    .check_run()?,
             Resource::Tar { .. } => {}
         }
         Ok(())
